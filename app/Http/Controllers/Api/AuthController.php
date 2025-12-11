@@ -11,51 +11,64 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     public function login(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
 
-        $user = User::where('email', $request->email)->first();
+    $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
-            'message' => 'Login successful'
+    if (!$user || !Hash::check($request->password, $user->password)) {
+        throw ValidationException::withMessages([
+            'email' => ['The provided credentials are incorrect.'],
         ]);
     }
 
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
+    if ($user->status !== 'Active') {
         return response()->json([
-            'user' => $user,
-            'token' => $token,
-            'message' => 'User registered successfully'
-        ], 201);
+            'message' => 'Your account is not yet activated by HR.',
+        ], 403);
     }
+
+    $token = $user->createToken('auth_token')->plainTextToken;
+
+    return response()->json([
+        'user' => $user,
+        'token' => $token,
+        'message' => 'Login successful'
+    ]);
+}
+
+
+   public function register(Request $request)
+{
+    $validated = $request->validate([
+        'firstName' => 'required|string|max:255',
+        'lastName' => 'required|string|max:255',
+        'middleName' => 'nullable|string|max:255',
+        'suffix' => 'nullable|string|max:10',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|min:6|confirmed',
+    ]);
+
+   $user = User::create([
+    'name' => $validated['firstName'] . ' ' . $validated['lastName'],
+    'firstName' => $validated['firstName'],
+    'lastName' => $validated['lastName'],
+    'middleName' => $validated['middleName'] ?? null,
+    'suffix' => $validated['suffix'] ?? null,
+    'email' => $validated['email'],
+    'password' => bcrypt($validated['password']),
+    'status' => 'Inactive',
+]);
+
+    return response()->json([
+        'message' => 'Account created. Waiting for HR approval.',
+        'user' => $user,
+    ], 201);
+}
+
 
     public function logout(Request $request)
     {
