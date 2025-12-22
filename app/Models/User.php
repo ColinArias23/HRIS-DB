@@ -13,6 +13,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'firstName',
+        'middleName',
         'lastName',
         'email',
         'password',
@@ -45,6 +46,9 @@ class User extends Authenticatable
     public function getNameAttribute()
     {
         return $this->lastName . ', ' . $this->firstName;
+        if ($this->middleName) {
+            $name .= ' ' . $this->middleName;
+        }
     }
 
     // Get avatar from employee relationship

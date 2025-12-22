@@ -11,25 +11,8 @@ use Illuminate\Support\Facades\Validator;
 class EmployeeController extends Controller
 {
     /**
-     * @OA\Get(
-     *     path="/api/employees",
-     *     tags={"Employees"},
-     *     summary="Get all employees",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="status",
-     *         in="query",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"Active", "Inactive"})
-     *     ),
-     *     @OA\Parameter(
-     *         name="employee_type",
-     *         in="query",
-     *         required=false,
-     *         @OA\Schema(type="string", example="Teaching")
-     *     ),
-     *     @OA\Response(response=200, description="List of employees")
-     * )
+     * Get all employees
+     * Frontend expects: array of employees
      */
     public function index(Request $request)
     {
@@ -44,40 +27,14 @@ class EmployeeController extends Controller
         }
 
         $employees = $query->orderBy('created_at', 'desc')->get();
+        
+        // Return plain array (not wrapped in object)
         return response()->json($employees);
     }
 
     /**
-     * @OA\Post(
-     *     path="/api/employees",
-     *     tags={"Employees"},
-     *     summary="Create new employee",
-     *     security={{"sanctum":{}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\MediaType(
-     *             mediaType="multipart/form-data",
-     *             @OA\Schema(
-     *                 required={"firstName", "lastName", "email", "position", "department"},
-     *                 @OA\Property(property="user_id", type="integer"),
-     *                 @OA\Property(property="firstName", type="string"),
-     *                 @OA\Property(property="middleName", type="string"),
-     *                 @OA\Property(property="lastName", type="string"),
-     *                 @OA\Property(property="suffix", type="string"),
-     *                 @OA\Property(property="email", type="string"),
-     *                 @OA\Property(property="contact", type="string"),
-     *                 @OA\Property(property="position", type="string"),
-     *                 @OA\Property(property="department", type="string"),
-     *                 @OA\Property(property="sex", type="string"),
-     *                 @OA\Property(property="age", type="integer"),
-     *                 @OA\Property(property="status", type="string", enum={"Active", "Inactive"}),
-     *                 @OA\Property(property="employee_type", type="string", example="Teaching"),
-     *                 @OA\Property(property="image", type="string", format="binary")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=201, description="Employee created successfully")
-     * )
+     * Create new employee
+     * Frontend sends FormData with image file
      */
     public function store(Request $request)
     {
@@ -98,6 +55,7 @@ class EmployeeController extends Controller
 
         $data = $request->except('image');
 
+        // Handle image upload
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('avatars', 'public');
             $data['avatar'] = '/storage/' . $path;
@@ -109,19 +67,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @OA\Get(
-     *     path="/api/employees/{id}",
-     *     tags={"Employees"},
-     *     summary="Get employee by ID",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response=200, description="Employee details")
-     * )
+     * Get single employee
      */
     public function show($id)
     {
@@ -135,19 +81,8 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @OA\Post(
-     *     path="/api/employees/{id}",
-     *     tags={"Employees"},
-     *     summary="Update employee (use POST with _method=PUT for file upload)",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response=200, description="Employee updated successfully")
-     * )
+     * Update employee
+     * Frontend sends FormData with _method=PUT
      */
     public function update(Request $request, $id)
     {
@@ -172,10 +107,11 @@ class EmployeeController extends Controller
 
         $data = $request->except(['image', '_method']);
 
+        // Handle image upload
         if ($request->hasFile('image')) {
             // Delete old avatar
             if ($employee->avatar) {
-                $oldPath = str_replace('/storage/', '', $employee->avatar);
+                $oldPath = str_replace('/storage/', '', parse_url($employee->avatar, PHP_URL_PATH));
                 Storage::disk('public')->delete($oldPath);
             }
 
@@ -189,19 +125,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @OA\Delete(
-     *     path="/api/employees/{id}",
-     *     tags={"Employees"},
-     *     summary="Delete employee",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response=200, description="Employee deleted successfully")
-     * )
+     * Delete employee
      */
     public function destroy($id)
     {
@@ -213,7 +137,7 @@ class EmployeeController extends Controller
 
         // Delete avatar if exists
         if ($employee->avatar) {
-            $path = str_replace('/storage/', '', $employee->avatar);
+            $path = str_replace('/storage/', '', parse_url($employee->avatar, PHP_URL_PATH));
             Storage::disk('public')->delete($path);
         }
 
@@ -223,13 +147,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @OA\Get(
-     *     path="/api/employees/pending",
-     *     tags={"Employees"},
-     *     summary="Get pending employees",
-     *     security={{"sanctum":{}}},
-     *     @OA\Response(response=200, description="List of pending employees")
-     * )
+     * Get pending employees
      */
     public function pendingEmployees()
     {
@@ -238,19 +156,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @OA\Post(
-     *     path="/api/employees/{id}/activate",
-     *     tags={"Employees"},
-     *     summary="Activate employee",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response=200, description="Employee activated successfully")
-     * )
+     * Activate employee
      */
     public function activateEmployee($id)
     {
@@ -265,19 +171,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @OA\Post(
-     *     path="/api/employees/{id}/deactivate",
-     *     tags={"Employees"},
-     *     summary="Deactivate employee",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response=200, description="Employee deactivated successfully")
-     * )
+     * Deactivate employee
      */
     public function deactivateEmployee($id)
     {

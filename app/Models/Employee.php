@@ -48,16 +48,21 @@ class Employee extends Model
         'age' => 'integer',
     ];
 
-    protected $appends = ['avatar_url', 'full_name', 'full_address'];
+    // Frontend expects these fields
+    protected $appends = ['full_name', 'full_address'];
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function getAvatarUrlAttribute()
+    // Frontend uses 'avatar' directly (not avatar_url)
+    public function getAvatarAttribute($value)
     {
-        return $this->avatar ? url($this->avatar) : null;
+        if ($value) {
+            return url($value);
+        }
+        return null;
     }
 
     public function getFullNameAttribute()

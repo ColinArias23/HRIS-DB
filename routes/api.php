@@ -19,12 +19,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/pending', [UserController::class, 'pendingUsers']);
     Route::get('/users/pending/count', [UserController::class, 'pendingUsersCount']);
+    
+    // IMPORTANT: Use POST (not PATCH) for activate/deactivate
     Route::post('/users/{id}/activate', [UserController::class, 'activateUser']);
     Route::post('/users/{id}/deactivate', [UserController::class, 'deactivateUser']);
     
-    // Employee management routes
-    Route::apiResource('employees', EmployeeController::class);
+    // Employee routes
+    Route::get('/employees', [EmployeeController::class, 'index']);
+    Route::post('/employees', [EmployeeController::class, 'store']);
     Route::get('/employees/pending', [EmployeeController::class, 'pendingEmployees']);
+    Route::get('/employees/{id}', [EmployeeController::class, 'show']);
+    Route::post('/employees/{id}', [EmployeeController::class, 'update']); // POST with _method=PUT
+    Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
     Route::post('/employees/{id}/activate', [EmployeeController::class, 'activateEmployee']);
     Route::post('/employees/{id}/deactivate', [EmployeeController::class, 'deactivateEmployee']);
 });
